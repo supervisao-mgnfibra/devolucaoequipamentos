@@ -207,7 +207,7 @@
         reader.onerror = error => reject(error);
     });
 
-    // Motor de envio
+    // Motor de envio com Bypass de CORS
     async function enviarDados() {
         const btn = document.querySelector('.btn-submit');
         btn.innerText = "ENVIANDO DADOS E FOTOS... AGUARDE";
@@ -240,6 +240,10 @@
 
             const resposta = await fetch(urlGAS, {
                 method: "POST",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8",
+                },
+                redirect: "follow", // Pulo do gato pra passar no bloqueio do Google
                 body: JSON.stringify(payload)
             });
 
