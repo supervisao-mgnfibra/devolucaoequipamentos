@@ -22,6 +22,7 @@
         .btn-submit:hover { background-color: #a30000; }
         .btn-submit:disabled { background-color: #999; cursor: not-allowed; }
         .box-destaque { background: #fff0f0; padding: 15px; border-left: 4px solid #cc0000; margin-bottom: 15px; border-radius: 4px; }
+        .footer-versao { text-align: center; margin-top: 20px; color: #999; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -41,7 +42,25 @@
     <form id="devolucaoForm">
         <div class="form-group">
             <label>NOME DO TÉCNICO:</label>
-            <input type="text" id="nome_tec" required>
+            <select id="nome_tec" onchange="toggleTecnicoNovo()" required>
+                <option value="">Selecione o condutor</option>
+                <option value="Flávio">Flávio</option>
+                <option value="David">David</option>
+                <option value="Vinicius">Vinicius</option>
+                <option value="Rodrigo">Rodrigo</option>
+                <option value="Leonardo">Leonardo</option>
+                <option value="Luciano">Luciano</option>
+                <option value="Freitas">Freitas</option>
+                <option value="Ewerton">Ewerton</option>
+                <option value="Eudes">Eudes</option>
+                <option value="Bruno">Bruno</option>
+                <option value="OUTRO">Outro (técnico novo)</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="campo_tecnico_novo" style="display: none;">
+            <label>DIGITE O NOME DO TÉCNICO:</label>
+            <input type="text" id="nome_tec_novo">
         </div>
 
         <div class="form-group">
@@ -119,9 +138,17 @@
 
         <button type="button" class="btn-submit" onclick="enviarDados()">Enviar Devolução</button>
     </form>
+
+    <div class="footer-versao">V1.4 2026</div>
 </div>
 
 <script>
+    function toggleTecnicoNovo() {
+        const select = document.getElementById('nome_tec');
+        const campoNovo = document.getElementById('campo_tecnico_novo');
+        campoNovo.style.display = (select.value === 'OUTRO') ? 'block' : 'none';
+    }
+
     function toggleCampos() {
         const aparelho = document.getElementById('aparelho').value;
         const clienteContrato = document.getElementById('campo_cliente_contrato');
@@ -198,17 +225,89 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
-    // Conversão ágil de arquivos para Base64
-    const getBase64 = (file) => new Promise((resolve, reject) => {
-        if(!file) return resolve("");
+    // Compressão de imagem: redimensiona e reduz qualidade antes de converter para Base64
+    const comprimirImagem = (file, larguraMax = 1000, qualidade = 0.6) => new Promise((resolve, reject) => {
+        if (!file) return resolve("");
+
         const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                let largura = img.width;
+                let altura = img.height;
+
+                if (largura > larguraMax) {
+                    altura = Math.round((altura * larguraMax) / largura);
+                    largura = larguraMax;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = largura;
+                canvas.height = altura;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, largura, altura);
+
+                resolve(canvas.toDataURL('image/jpeg', qualidade));
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
         reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
     });
+
+    function validarFormulario() {
+        const erros = [];
+        const aparelho = document.getElementById('aparelho').value;
+        const nomeTec = document.getElementById('nome_tec').value;
+
+        if (!nomeTec) erros.push("Selecione o nome do técnico.");
+        if (nomeTec === 'OUTRO' && !document.getElementById('nome_tec_novo').value.trim()) {
+            erros.push("Digite o nome do técnico novo.");
+        }
+        if (!aparelho) erros.push("Selecione o Aparelho/Material.");
+
+        if (aparelho && aparelho !== 'FERRAMENTA' && aparelho !== 'MATERIAL') {
+            if (!document.getElementById('nome_cliente').value.trim()) erros.push("Preencha o Nome do Cliente.");
+            if (!document.getElementById('contrato').value.trim()) erros.push("Preencha o Contrato.");
+
+            if (aparelho === 'ONU + ROTEADOR') {
+                if (!document.getElementById('mac_onu').value.trim()) erros.push("Preencha o MAC da ONU.");
+                if (!document.getElementById('foto_mac_onu').files[0]) erros.push("Anexe a foto do MAC da ONU.");
+                if (!document.getElementById('mac_roteador').value.trim()) erros.push("Preencha o MAC do Roteador.");
+                if (!document.getElementById('foto_mac_roteador').files[0]) erros.push("Anexe a foto do MAC do Roteador.");
+            } else {
+                if (!document.getElementById('mac').value.trim()) erros.push("Preencha o MAC.");
+                if (!document.getElementById('foto_mac').files[0]) erros.push("Anexe a foto do MAC.");
+            }
+        }
+
+        if (!document.getElementById('motivo').value) erros.push("Selecione o Motivo.");
+        if (!document.getElementById('observacao').value.trim()) erros.push("Preencha a Observação.");
+
+        if (canvasVazio(canvasTec)) erros.push("Assinatura do técnico está faltando.");
+        if (canvasVazio(canvasRec)) erros.push("Assinatura de quem recebeu está faltando.");
+
+        return erros;
+    }
+
+    function canvasVazio(canvas) {
+        const ctx = canvas.getContext('2d');
+        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        for (let i = 3; i < pixels.length; i += 4) {
+            if (pixels[i] !== 0) return false;
+        }
+        return true;
+    }
 
     // Motor de envio com Bypass de CORS
     async function enviarDados() {
+        const erros = validarFormulario();
+        if (erros.length > 0) {
+            alert("Corrija antes de enviar:\n\n- " + erros.join("\n- "));
+            return;
+        }
+
         const btn = document.querySelector('.btn-submit');
         btn.innerText = "ENVIANDO DADOS E FOTOS... AGUARDE";
         btn.disabled = true;
@@ -218,8 +317,13 @@
             const arquivoOnu = document.getElementById('foto_mac_onu').files[0];
             const arquivoRot = document.getElementById('foto_mac_roteador').files[0];
 
+            const nomeTecSelecionado = document.getElementById('nome_tec').value;
+            const nomeTecFinal = (nomeTecSelecionado === 'OUTRO')
+                ? document.getElementById('nome_tec_novo').value
+                : nomeTecSelecionado;
+
             const payload = {
-                nomeTec: document.getElementById('nome_tec').value,
+                nomeTec: nomeTecFinal,
                 aparelho: document.getElementById('aparelho').value,
                 nomeCliente: document.getElementById('nome_cliente').value,
                 contrato: document.getElementById('contrato').value,
@@ -228,11 +332,11 @@
                 macRot: document.getElementById('mac_roteador').value,
                 motivo: document.getElementById('motivo').value,
                 observacao: document.getElementById('observacao').value,
-                assTec: canvasTec.toDataURL("image/png"),
-                assRec: canvasRec.toDataURL("image/png"),
-                fotoUnica: await getBase64(arquivoUnico),
-                fotoOnu: await getBase64(arquivoOnu),
-                fotoRot: await getBase64(arquivoRot)
+                assTec: canvasTec.toDataURL("image/jpeg", 0.7),
+                assRec: canvasRec.toDataURL("image/jpeg", 0.7),
+                fotoUnica: await comprimirImagem(arquivoUnico),
+                fotoOnu: await comprimirImagem(arquivoOnu),
+                fotoRot: await comprimirImagem(arquivoRot)
             };
 
             // SEU ENDPOINT PLUGADO AQUI:
