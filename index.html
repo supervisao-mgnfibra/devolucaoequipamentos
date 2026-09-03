@@ -1,8 +1,18 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+    <script>
+        try {
+            if (window.self === window.top && !location.search.includes('cb=')) {
+                location.replace(location.pathname + '?cb=' + Date.now());
+            }
+        } catch (e) {}
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Check Fácil - Devolução MGN</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; padding: 20px; display: flex; justify-content: center; }
@@ -47,7 +57,6 @@
                 <option value="Flávio">Flávio</option>
                 <option value="David">David</option>
                 <option value="Vinicius">Vinicius</option>
-                <option value="Rodrigo">Rodrigo</option>
                 <option value="Leonardo">Leonardo</option>
                 <option value="Luciano">Luciano</option>
                 <option value="Freitas">Freitas</option>
@@ -56,6 +65,8 @@
                 <option value="Bruno">Bruno</option>
                 <option value="Leandro">Leandro</option>
                 <option value="Herivelton">Herivelton</option>
+                <option value="Lucas">Lucas</option>
+                <option value="Luan">Luan</option>
                 <option value="OUTRO">Outro (técnico novo)</option>
             </select>
         </div>
@@ -168,6 +179,7 @@
             motivoSelect.add(new Option('MATERIAL RECOLHIDO DE ROTA', 'MATERIAL RECOLHIDO DE ROTA'));
             motivoSelect.add(new Option('DEVOLVENDO MATERIAL DO MEU ESTOQUE', 'DEVOLVENDO MATERIAL DO MEU ESTOQUE'));
             motivoSelect.add(new Option('MATERIAL COM DEFEITO', 'MATERIAL COM DEFEITO'));
+            motivoSelect.add(new Option('O.S DE TROCA DE EQUIPAMENTO', 'O.S DE TROCA DE EQUIPAMENTO'));
 
         } else if (aparelho) { 
             if (aparelho === 'ONU + ROTEADOR') {
@@ -183,6 +195,7 @@
             motivoSelect.add(new Option('EQUIPAMENTO COM DEFEITO', 'EQUIPAMENTO COM DEFEITO'));
             motivoSelect.add(new Option('MUDANÇA DE PLANO', 'MUDANÇA DE PLANO'));
             motivoSelect.add(new Option('RECOLHIMENTO', 'RECOLHIMENTO'));
+            motivoSelect.add(new Option('O.S DE TROCA DE EQUIPAMENTO', 'O.S DE TROCA DE EQUIPAMENTO'));
         }
     }
 
@@ -228,7 +241,7 @@
     }
 
     // Compressão de imagem: redimensiona e reduz qualidade antes de converter para Base64
-    const comprimirImagem = (file, larguraMax = 1000, qualidade = 0.6) => new Promise((resolve, reject) => {
+    const comprimirImagem = (file, larguraMax = 800, qualidade = 0.5) => new Promise((resolve, reject) => {
         if (!file) return resolve("");
 
         const reader = new FileReader();
